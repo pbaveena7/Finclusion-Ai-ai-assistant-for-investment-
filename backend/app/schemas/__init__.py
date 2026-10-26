@@ -1,7 +1,7 @@
 """Pydantic schemas for request/response validation."""
 from __future__ import annotations
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from typing import Optional
 
 
@@ -154,8 +154,7 @@ class ProfileSchema(BaseModel):
     investment_horizon_years: int = 5
     language: str = "en"
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ProfileSummary(BaseModel):
@@ -181,5 +180,4 @@ class GoalSchema(GoalCreate):
     profile_id: str
     progress_pct: float = 0.0
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
