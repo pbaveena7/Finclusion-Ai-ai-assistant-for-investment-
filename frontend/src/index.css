@@ -1,0 +1,202 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =========================================================
+   ABSOLUTE PURE BLACK BACKGROUND & 100% PURE WHITE TEXT THEME
+   ========================================================= */
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  top: 0px !important;
+  position: static !important;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ENFORCE 100% PURE WHITE ON ALL TEXT ELEMENTS (EXCEPT BUTTONS) */
+p, span, div,
+h1, h2, h3, h4, h5, h6, strong, b, label, small, li, a, th, td, blockquote,
+.text-sub, .text-dim, [class*="text-zinc-"], [class*="text-gray-"] {
+  color: #ffffff;
+}
+
+/* BUT FOR WHITE BUTTONS/PILLS: FORCE SOLID BLACK TEXT */
+button.btn-primary, button.btn-primary *,
+.btn-primary, .btn-primary *,
+button.btn-active-pill, button.btn-active-pill *,
+.btn-active-pill, .btn-active-pill *,
+.text-black, [style*="background-color: #ffffff"] *, [style*="backgroundColor: '#ffffff'"] * {
+  color: #000000 !important;
+}
+
+/* CARDS & CONTAINERS: SOLID JET BLACK WITH CRISP BORDERS */
+.card, [class*="bg-zinc-9"], [class*="bg-zinc-8"], aside, header {
+  background-color: #000000 !important;
+  border-color: #27272a !important;
+  color: #ffffff !important;
+}
+
+.card {
+  border: 1px solid #27272a !important;
+  border-radius: 1rem;
+  padding: 1.5rem;
+}
+
+.card *, aside *, header * {
+  color: #ffffff;
+}
+
+/* LABELS */
+.label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.375rem;
+  color: #ffffff !important;
+}
+
+/* FORM INPUTS: PURE BLACK BACKGROUND, CRISP BORDER, WHITE TEXT */
+.input {
+  width: 100%;
+  border-radius: 0.75rem;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  outline: none;
+  transition: all 0.15s ease;
+  background-color: #050505 !important;
+  border: 1px solid #3f3f46 !important;
+  color: #ffffff !important;
+}
+.input::placeholder {
+  color: #a1a1aa !important;
+}
+.input:focus {
+  border-color: #ffffff !important;
+}
+
+.input.has-icon,
+.input.pl-10,
+.input.pl-11 {
+  padding-left: 2.75rem !important; /* 44px clearance so characters never overlap leading icons */
+}
+
+/* PRIMARY BUTTON: SOLID WHITE WITH PURE BLACK TEXT FOR HIGH CONTRAST */
+.btn-primary, .btn-active-pill, .bg-white {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border: 1px solid #ffffff !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.75rem;
+  font-weight: 800;
+  font-size: 0.875rem;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.btn-primary *, .btn-primary span, .btn-active-pill *, .btn-active-pill span, .bg-white, .bg-white * {
+  color: #000000 !important;
+}
+
+.btn-primary:hover {
+  background-color: #e4e4e7 !important;
+}
+
+/* SECONDARY BUTTON: JET BLACK BACKGROUND, CRISP WHITE BORDER AND TEXT */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border: 1px solid #52525b !important;
+}
+
+.btn-secondary *, .btn-secondary span {
+  color: #ffffff !important;
+}
+
+.btn-secondary:hover {
+  background-color: #18181b !important;
+  border-color: #ffffff !important;
+}
+
+/* ALERTS */
+.alert-error {
+  padding: 0.875rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid #ef4444 !important;
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+.alert-error * {
+  color: #ffffff !important;
+}
+
+.alert-success {
+  padding: 0.875rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid #22c55e !important;
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+.alert-success * {
+  color: #ffffff !important;
+}
+
+/* TICKER ANIMATION */
+@keyframes ticker {
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); }
+}
+.animate-ticker { animation: ticker 35s linear infinite; }
+.animate-ticker:hover { animation-play-state: paused; }
+
+/* KILL GOOGLE TRANSLATE BANNER */
+.goog-te-banner-frame,
+.goog-te-banner-frame.skiptranslate,
+iframe.goog-te-banner-frame,
+#goog-gt-tt,
+.goog-te-balloon-frame,
+.goog-tooltip,
+.goog-tooltip:hover {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  height: 0px !important;
+  width: 0px !important;
+  pointer-events: none !important;
+}
