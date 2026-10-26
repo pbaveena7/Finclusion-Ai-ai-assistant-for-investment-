@@ -1,165 +1,97 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight,
   Search, Sliders, ChevronDown, Check, RefreshCw, BarChart2,
-  Calendar, Download, PieChart, ShieldCheck
+  Calendar, Download, PieChart, ShieldCheck, Filter
 } from 'lucide-react'
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts'
 import { getStockQuote } from '../api/client.js'
-
-// High-liquidity monitored assets
-const STOCKS_DATA = [
-  {
-    symbol: 'NVDA',
-    name: 'NVIDIA Corp.',
-    exchange: 'NASDAQ',
-    shares: 142,
-    basePrice: 608.42,
-    dayChangePct: 2.46,
-    dayChangeVal: 14.62,
-    color: '#22c55e',
-    logo: '🟢',
-    data7D: [
-      { time: 'Aug 3', price: 575 },
-      { time: 'Aug 4', price: 588 },
-      { time: 'Aug 5', price: 591.80 },
-      { time: 'Aug 6', price: 582 },
-      { time: 'Aug 7', price: 594 },
-      { time: 'Aug 8', price: 616 },
-      { time: 'Aug 9', price: 608.42 },
-    ]
-  },
-  {
-    symbol: 'AAPL',
-    name: 'Apple Inc.',
-    exchange: 'NASDAQ',
-    shares: 228,
-    basePrice: 229.39,
-    dayChangePct: 0.84,
-    dayChangeVal: 1.91,
-    color: '#3b82f6',
-    logo: '🍎',
-    data7D: [
-      { time: 'Aug 3', price: 224 },
-      { time: 'Aug 4', price: 226 },
-      { time: 'Aug 5', price: 225 },
-      { time: 'Aug 6', price: 227 },
-      { time: 'Aug 7', price: 228 },
-      { time: 'Aug 8', price: 231 },
-      { time: 'Aug 9', price: 229.39 },
-    ]
-  },
-  {
-    symbol: 'MSFT',
-    name: 'Microsoft Corp.',
-    exchange: 'NASDAQ',
-    shares: 95,
-    basePrice: 428.15,
-    dayChangePct: 1.15,
-    dayChangeVal: 4.88,
-    color: '#06b6d4',
-    logo: '💻',
-    data7D: [
-      { time: 'Aug 3', price: 418 },
-      { time: 'Aug 4', price: 421 },
-      { time: 'Aug 5', price: 424 },
-      { time: 'Aug 6', price: 420 },
-      { time: 'Aug 7', price: 426 },
-      { time: 'Aug 8', price: 430 },
-      { time: 'Aug 9', price: 428.15 },
-    ]
-  },
-  {
-    symbol: 'TSLA',
-    name: 'Tesla, Inc.',
-    exchange: 'NASDAQ',
-    shares: 60,
-    basePrice: 248.50,
-    dayChangePct: -1.72,
-    dayChangeVal: -4.35,
-    color: '#ef4444',
-    logo: '⚡',
-    data7D: [
-      { time: 'Aug 3', price: 258 },
-      { time: 'Aug 4', price: 254 },
-      { time: 'Aug 5', price: 250 },
-      { time: 'Aug 6', price: 246 },
-      { time: 'Aug 7', price: 252 },
-      { time: 'Aug 8', price: 245 },
-      { time: 'Aug 9', price: 248.50 },
-    ]
-  },
-  {
-    symbol: 'AMZN',
-    name: 'Amazon.com Inc.',
-    exchange: 'NASDAQ',
-    shares: 80,
-    basePrice: 186.20,
-    dayChangePct: 1.45,
-    dayChangeVal: 2.65,
-    color: '#f59e0b',
-    logo: '📦',
-    data7D: [
-      { time: 'Aug 3', price: 180 },
-      { time: 'Aug 4', price: 182 },
-      { time: 'Aug 5', price: 184 },
-      { time: 'Aug 6', price: 183 },
-      { time: 'Aug 7', price: 187 },
-      { time: 'Aug 8', price: 189 },
-      { time: 'Aug 9', price: 186.20 },
-    ]
-  }
-]
+import { GLOBAL_STOCKS_100 } from '../data/stocks100.js'
 
 export default function StockTerminal() {
-  const [selectedStock, setSelectedStock] = useState(STOCKS_DATA[0])
+  const [selectedStock, setSelectedStock] = useState(GLOBAL_STOCKS_100[0])
   const [livePrices, setLivePrices] = useState({})
   const [timeframe, setTimeframe] = useState('7D')
   const [orderType, setOrderType] = useState('buy')
   const [orderShares, setOrderShares] = useState(10)
   const [orderPlaced, setOrderPlaced] = useState(false)
-  const [buyingPower, setBuyingPower] = useState(18400)
+  const [buyingPower, setBuyingPower] = useState(250000)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedSector, setSelectedSector] = useState('All')
 
-  // Fetch real-time live quotes from Finnhub via backend API
+  // Generate unique sectors for filter
+  const sectors = useMemo(() => {
+    const s = new Set(GLOBAL_STOCKS_100.map(item => item.sector))
+    return ['All', ...Array.from(s)]
+  }, [])
+
+  // Filter stocks dynamically by query and sector
+  const filteredStocks = useMemo(() => {
+    return GLOBAL_STOCKS_100.filter(item => {
+      const matchesSearch = item.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            item.name.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchesSector = selectedSector === 'All' || item.sector === selectedSector
+      return matchesSearch && matchesSector
+    })
+  }, [searchQuery, selectedSector])
+
+  // Fetch real-time live quotes for the currently selected stock
   useEffect(() => {
-    async function loadLiveQuotes() {
-      for (const s of STOCKS_DATA) {
-        try {
-          const res = await getStockQuote(s.symbol)
-          if (res.data?.price) {
-            setLivePrices(prev => ({
-              ...prev,
-              [s.symbol]: {
-                price: res.data.price,
-                change: res.data.change,
-                change_percent: res.data.change_percent
-              }
-            }))
-          }
-        } catch {
-          // fallback to base price
+    async function loadQuote() {
+      try {
+        const res = await getStockQuote(selectedStock.symbol)
+        if (res.data?.price) {
+          setLivePrices(prev => ({
+            ...prev,
+            [selectedStock.symbol]: {
+              price: res.data.price,
+              change: res.data.change,
+              change_percent: res.data.change_percent
+            }
+          }))
         }
+      } catch {
+        // fallback to base price
       }
     }
-    loadLiveQuotes()
-  }, [])
+    loadQuote()
+  }, [selectedStock.symbol])
 
   const currentQuote = livePrices[selectedStock.symbol] || {
     price: selectedStock.basePrice,
-    change: selectedStock.dayChangeVal,
+    change: (selectedStock.basePrice * selectedStock.dayChangePct) / 100,
     change_percent: selectedStock.dayChangePct
   }
 
-  // Calculate dynamic portfolio values
-  const totalHoldingsValue = STOCKS_DATA.reduce((acc, stock) => {
-    const p = livePrices[stock.symbol]?.price || stock.basePrice
-    return acc + (stock.shares * p)
-  }, 0)
+  // Dynamic 7-day chart curve based on current selected stock price
+  const chartData = useMemo(() => {
+    const p = currentQuote.price
+    return [
+      { time: 'Aug 3', price: Math.round(p * 0.94 * 100) / 100 },
+      { time: 'Aug 4', price: Math.round(p * 0.96 * 100) / 100 },
+      { time: 'Aug 5', price: Math.round(p * 0.95 * 100) / 100 },
+      { time: 'Aug 6', price: Math.round(p * 0.98 * 100) / 100 },
+      { time: 'Aug 7', price: Math.round(p * 0.97 * 100) / 100 },
+      { time: 'Aug 8', price: Math.round(p * 1.01 * 100) / 100 },
+      { time: 'Aug 9', price: Math.round(p * 100) / 100 },
+    ]
+  }, [currentQuote.price])
 
-  const dayPnL = STOCKS_DATA.reduce((acc, stock) => {
-    const ch = livePrices[stock.symbol]?.change || stock.dayChangeVal
-    return acc + (stock.shares * ch)
-  }, 0)
+  // Aggregate portfolio calculations
+  const totalHoldingsValue = useMemo(() => {
+    return GLOBAL_STOCKS_100.reduce((acc, stock) => {
+      const p = livePrices[stock.symbol]?.price || stock.basePrice
+      return acc + (stock.shares * p)
+    }, 0)
+  }, [livePrices])
+
+  const dayPnL = useMemo(() => {
+    return GLOBAL_STOCKS_100.reduce((acc, stock) => {
+      const p = livePrices[stock.symbol]?.price || stock.basePrice
+      const chPct = livePrices[stock.symbol]?.change_percent || stock.dayChangePct
+      return acc + (stock.shares * p * (chPct / 100))
+    }, 0)
+  }, [livePrices])
 
   const handleExecuteOrder = (e) => {
     e.preventDefault()
@@ -175,15 +107,20 @@ export default function StockTerminal() {
   }
 
   return (
-    <div className="p-8 max-w-[1400px] mx-auto space-y-6 select-none bg-black text-white font-sans">
-      {/* Top Bar / Page Header */}
+    <div className="p-8 max-w-[1440px] mx-auto space-y-6 select-none bg-black text-white font-sans">
+      {/* Top Bar / Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-            Overview
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+              Overview
+            </h1>
+            <span className="text-xs px-2.5 py-0.5 rounded-full border border-emerald-800 bg-emerald-950/80 text-emerald-400 font-mono font-bold">
+              110+ Live Equities
+            </span>
+          </div>
           <p className="text-xs text-zinc-400 mt-0.5">
-            Multi-Asset Terminal • Real-Time Order Routing & Portfolio Screener
+            Institutional Multi-Asset Terminal • Real-Time Order Routing & Portfolio Screener
           </p>
         </div>
 
@@ -195,11 +132,11 @@ export default function StockTerminal() {
 
           <button 
             type="button"
-            onClick={() => alert('Portfolio statement exported.')}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl border border-zinc-800 bg-white text-black font-semibold text-xs hover:bg-zinc-200 transition-colors"
+            onClick={() => alert(`Exported complete 110-stock portfolio report.`)}
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl border border-zinc-800 bg-white text-black font-semibold text-xs hover:bg-zinc-200 transition-colors cursor-pointer"
           >
             <Download size={13} color="#000000" />
-            <span style={{ color: '#000000' }}>Export</span>
+            <span style={{ color: '#000000' }}>Export 100+</span>
           </button>
         </div>
       </div>
@@ -207,7 +144,7 @@ export default function StockTerminal() {
       {/* 4 Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 rounded-2xl border border-zinc-800/80 bg-[#09090b] space-y-2">
-          <div className="text-xs text-zinc-400 font-medium">Portfolio value</div>
+          <div className="text-xs text-zinc-400 font-medium">Portfolio value (100+ positions)</div>
           <div className="text-3xl font-extrabold tracking-tight text-white font-mono">
             ${Math.round(totalHoldingsValue).toLocaleString()}
           </div>
@@ -236,11 +173,11 @@ export default function StockTerminal() {
         <div className="p-5 rounded-2xl border border-zinc-800/80 bg-[#09090b] space-y-2">
           <div className="text-xs text-zinc-400 font-medium">Total return</div>
           <div className="text-3xl font-extrabold tracking-tight text-white font-mono">
-            +$46,300
+            +$86,450
           </div>
           <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium">
             <ArrowUpRight size={14} />
-            <span>+22.9% all time</span>
+            <span>+24.8% all time</span>
           </div>
         </div>
       </div>
@@ -252,12 +189,15 @@ export default function StockTerminal() {
           <div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-sm">
+                <div className="w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-base">
                   {selectedStock.logo}
                 </div>
                 <div>
                   <div className="font-bold text-sm text-white flex items-center gap-1.5">
                     {selectedStock.symbol}
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded border border-zinc-800 text-zinc-400">
+                      {selectedStock.sector}
+                    </span>
                   </div>
                   <div className="text-xs text-zinc-400">
                     {selectedStock.name} • {selectedStock.exchange}
@@ -272,7 +212,7 @@ export default function StockTerminal() {
                     key={t}
                     type="button"
                     onClick={() => setTimeframe(t)}
-                    className={`px-2.5 py-1 rounded-lg transition-colors ${
+                    className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
                       timeframe === t ? 'bg-zinc-800 text-white font-bold' : 'text-zinc-400 hover:text-white'
                     }`}
                   >
@@ -298,7 +238,7 @@ export default function StockTerminal() {
           {/* Area Chart with Emerald Gradient */}
           <div className="h-[280px] w-full pt-4">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={selectedStock.data7D}>
+              <AreaChart data={chartData}>
                 <defs>
                   <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
@@ -351,7 +291,7 @@ export default function StockTerminal() {
               <button
                 type="button"
                 onClick={() => setOrderType('buy')}
-                className={`py-2 rounded-lg transition-colors ${
+                className={`py-2 rounded-lg transition-colors cursor-pointer ${
                   orderType === 'buy' ? 'bg-zinc-800 text-white font-bold' : 'text-zinc-400 hover:text-white'
                 }`}
               >
@@ -360,7 +300,7 @@ export default function StockTerminal() {
               <button
                 type="button"
                 onClick={() => setOrderType('sell')}
-                className={`py-2 rounded-lg transition-colors ${
+                className={`py-2 rounded-lg transition-colors cursor-pointer ${
                   orderType === 'sell' ? 'bg-zinc-800 text-white font-bold' : 'text-zinc-400 hover:text-white'
                 }`}
               >
@@ -378,14 +318,14 @@ export default function StockTerminal() {
               </div>
             </div>
 
-            {/* Quick Share Percentage Chips */}
+            {/* Quick Share Quantity Chips */}
             <div className="grid grid-cols-4 gap-2 text-xs font-mono">
               {[5, 10, 25, 50].map(s => (
                 <button
                   key={s}
                   type="button"
                   onClick={() => setOrderShares(s)}
-                  className={`py-1.5 rounded-lg border border-zinc-800 text-center transition-colors ${
+                  className={`py-1.5 rounded-lg border border-zinc-800 text-center transition-colors cursor-pointer ${
                     orderShares === s ? 'bg-zinc-800 text-white border-zinc-600' : 'bg-black text-zinc-400 hover:text-white'
                   }`}
                 >
@@ -394,29 +334,29 @@ export default function StockTerminal() {
               ))}
             </div>
 
-            {/* Stock Dropdown Selector */}
+            {/* 110+ Stock Selector Dropdown */}
             <div className="relative">
               <select
                 value={selectedStock.symbol}
                 onChange={e => {
-                  const s = STOCKS_DATA.find(x => x.symbol === e.target.value)
+                  const s = GLOBAL_STOCKS_100.find(x => x.symbol === e.target.value)
                   if (s) setSelectedStock(s)
                 }}
                 className="w-full py-2.5 px-3 rounded-xl border border-zinc-800 bg-black text-xs font-semibold text-white outline-none cursor-pointer"
               >
-                {STOCKS_DATA.map(st => (
+                {GLOBAL_STOCKS_100.map(st => (
                   <option key={st.symbol} value={st.symbol}>
-                    {st.symbol} • {st.name}
+                    {st.symbol} • {st.name} ({st.sector})
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* Action Button */}
+            {/* Execution Button */}
             <button
               type="button"
               onClick={handleExecuteOrder}
-              className="w-full py-3 rounded-xl font-bold text-xs bg-white text-black hover:bg-zinc-200 transition-colors uppercase tracking-wider"
+              className="w-full py-3 rounded-xl font-bold text-xs bg-white text-black hover:bg-zinc-200 transition-colors uppercase tracking-wider cursor-pointer"
               style={{ color: '#000000', backgroundColor: '#ffffff' }}
             >
               <span style={{ color: '#000000', fontWeight: 800 }}>
@@ -438,10 +378,10 @@ export default function StockTerminal() {
           {/* Top Movers Mini-List */}
           <div className="p-5 rounded-2xl border border-zinc-800/80 bg-[#09090b] space-y-3">
             <div className="text-xs font-bold uppercase tracking-wider text-zinc-300">
-              Top movers
+              Top Gainers Today
             </div>
             <div className="space-y-2">
-              {STOCKS_DATA.slice(0, 3).map(stock => {
+              {GLOBAL_STOCKS_100.slice(0, 4).map(stock => {
                 const quote = livePrices[stock.symbol] || {
                   price: stock.basePrice,
                   change_percent: stock.dayChangePct
@@ -454,9 +394,12 @@ export default function StockTerminal() {
                   >
                     <div className="flex items-center gap-2">
                       <span className="text-base">{stock.logo}</span>
-                      <span className="text-xs font-semibold text-white">{stock.name.split(' ')[0]}</span>
+                      <div>
+                        <span className="text-xs font-semibold text-white block">{stock.symbol}</span>
+                        <span className="text-[10px] text-zinc-500 block">{stock.name.split(' ')[0]}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 font-mono text-xs">
+                    <div className="flex items-center gap-2 font-mono text-xs text-right">
                       <span className="text-white">${Number(quote.price).toFixed(2)}</span>
                       <span className={quote.change_percent >= 0 ? 'text-emerald-400' : 'text-red-400'}>
                         {quote.change_percent >= 0 ? '+' : ''}{Number(quote.change_percent).toFixed(2)}%
@@ -470,36 +413,64 @@ export default function StockTerminal() {
         </div>
       </div>
 
-      {/* Bottom Table: Holdings */}
+      {/* Bottom Table: 110+ Stock Screener & Holdings */}
       <div className="p-6 rounded-2xl border border-zinc-800/80 bg-[#09090b] space-y-4">
-        <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3">
-          <div className="text-sm font-bold text-white">Holdings</div>
-          <div className="text-xs font-mono text-zinc-400">
-            {STOCKS_DATA.length} positions • ${Math.round(totalHoldingsValue).toLocaleString()}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800/80 pb-4">
+          <div>
+            <div className="text-sm font-bold text-white">Full Market Screener & Portfolio Universe</div>
+            <div className="text-xs font-mono text-zinc-400">
+              Showing {filteredStocks.length} of {GLOBAL_STOCKS_100.length} monitored liquid equities
+            </div>
+          </div>
+
+          {/* Search & Sector Filters */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="relative">
+              <Search size={14} className="absolute left-3 top-2.5 text-zinc-400 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search symbol or name..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="py-1.5 pl-8 pr-3 rounded-xl border border-zinc-800 bg-black text-xs text-white placeholder-zinc-500 outline-none w-48"
+              />
+            </div>
+
+            <select
+              value={selectedSector}
+              onChange={e => setSelectedSector(e.target.value)}
+              className="py-1.5 px-3 rounded-xl border border-zinc-800 bg-black text-xs text-white outline-none cursor-pointer"
+            >
+              {sectors.map(sec => (
+                <option key={sec} value={sec}>{sec}</option>
+              ))}
+            </select>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Scrollable Screener Table */}
+        <div className="overflow-x-auto max-h-[500px] overflow-y-auto pr-1">
           <table className="w-full text-left text-xs font-mono">
-            <thead>
-              <tr className="text-zinc-500 border-b border-zinc-800/50 pb-2">
-                <th className="py-2.5 font-normal">Asset</th>
-                <th className="py-2.5 font-normal">Shares</th>
-                <th className="py-2.5 font-normal">Price</th>
-                <th className="py-2.5 font-normal">Day change</th>
-                <th className="py-2.5 font-normal">Trend</th>
-                <th className="py-2.5 font-normal">Value</th>
-                <th className="py-2.5 font-normal">Weight</th>
+            <thead className="sticky top-0 bg-[#09090b] z-10">
+              <tr className="text-zinc-400 border-b border-zinc-800 pb-2">
+                <th className="py-2.5 font-semibold">Asset / Symbol</th>
+                <th className="py-2.5 font-semibold">Sector</th>
+                <th className="py-2.5 font-semibold">Shares</th>
+                <th className="py-2.5 font-semibold">Live Price</th>
+                <th className="py-2.5 font-semibold">24h Change</th>
+                <th className="py-2.5 font-semibold">Market Trend</th>
+                <th className="py-2.5 font-semibold">Position Value</th>
+                <th className="py-2.5 font-semibold">Weight</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/40">
-              {STOCKS_DATA.map(stock => {
+              {filteredStocks.map(stock => {
                 const quote = livePrices[stock.symbol] || {
                   price: stock.basePrice,
                   change_percent: stock.dayChangePct
                 }
                 const positionValue = stock.shares * quote.price
-                const weight = totalHoldingsValue > 0 ? ((positionValue / totalHoldingsValue) * 100).toFixed(1) : 0
+                const weight = totalHoldingsValue > 0 ? ((positionValue / totalHoldingsValue) * 100).toFixed(2) : 0
                 const isSelected = selectedStock.symbol === stock.symbol
 
                 return (
@@ -507,7 +478,7 @@ export default function StockTerminal() {
                     key={stock.symbol}
                     onClick={() => setSelectedStock(stock)}
                     className={`hover:bg-zinc-900/60 cursor-pointer transition-colors ${
-                      isSelected ? 'bg-zinc-900/40' : ''
+                      isSelected ? 'bg-zinc-900/50 border-l-2 border-emerald-400' : ''
                     }`}
                   >
                     <td className="py-3 flex items-center gap-2.5">
@@ -517,13 +488,14 @@ export default function StockTerminal() {
                         <div className="text-[10px] text-zinc-400 font-sans">{stock.name}</div>
                       </div>
                     </td>
+                    <td className="py-3 text-zinc-400">{stock.sector}</td>
                     <td className="py-3 text-zinc-200">{stock.shares}</td>
                     <td className="py-3 text-white font-bold">${Number(quote.price).toFixed(2)}</td>
                     <td className={`py-3 ${quote.change_percent >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                       {quote.change_percent >= 0 ? '↗ +' : '↘ '}{Number(quote.change_percent).toFixed(2)}%
                     </td>
                     <td className="py-3">
-                      <div className="w-16 h-3 rounded bg-zinc-800/50 overflow-hidden">
+                      <div className="w-16 h-2.5 rounded bg-zinc-800/50 overflow-hidden">
                         <div 
                           className={`h-full ${quote.change_percent >= 0 ? 'bg-emerald-500' : 'bg-red-500'}`} 
                           style={{ width: `${Math.min(Math.abs(quote.change_percent) * 30, 100)}%` }} 
