@@ -1,10 +1,11 @@
 import {
   LayoutDashboard, MessageCircle, LineChart, Calculator, Target,
-  Newspaper, ShieldAlert, Settings, TrendingUp, Sparkles
+  Newspaper, ShieldAlert, Settings, TrendingUp, Sparkles, CandlestickChart
 } from 'lucide-react'
 
 const navItems = [
   { id: 'dashboard',   label: 'Dashboard Overview',  icon: LayoutDashboard },
+  { id: 'terminal',    label: 'Portfolio & Ticker',  icon: CandlestickChart },
   { id: 'chat',        label: 'AI Financial Assistant', icon: MessageCircle },
   { id: 'forecaster',  label: 'FinGPT Forecaster',    icon: LineChart },
   { id: 'recommender', label: 'Stock Recommender',    icon: Sparkles },

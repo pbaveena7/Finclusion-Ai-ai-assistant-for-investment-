@@ -9,6 +9,7 @@ import NewsPanel from './components/NewsPanel.jsx'
 import FraudChecker from './components/FraudChecker.jsx'
 import ProfileSettings from './components/ProfileSettings.jsx'
 import StockRecommender from './components/StockRecommender.jsx'
+import StockTerminal from './components/StockTerminal.jsx'
 import StockTickerBar from './components/StockTickerBar.jsx'
 import AuthModal from './components/AuthModal.jsx'
 import GoogleTranslateWidget from './components/GoogleTranslateWidget.jsx'
@@ -40,6 +41,7 @@ export default function App() {
   const renderPage = () => {
     switch (activePage) {
       case 'dashboard':   return <Dashboard lang={lang} setActivePage={setActivePage} />
+      case 'terminal':    return <StockTerminal />
       case 'chat':        return <ChatBot lang={lang} />
       case 'forecaster':  return <FinGPTForecaster lang={lang} />
       case 'recommender': return <StockRecommender lang={lang} />
